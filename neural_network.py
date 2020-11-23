@@ -236,7 +236,7 @@ class Batch_normalization:
         else:
             var = self.var_sum
             mean = self.mean_sum
-            # var = self.var_sum * self.count * / (self.count - 1) if self.count > 1 else 0
+            # var = self.var_sum * self.count / (self.count - 1) if self.count > 1 else 0
             # mean = self.mean_sum / self.count if self.count > 0 else 0
             c = self.gamma / np.sqrt(var + Batch_normalization.eps)
             self.y = (c * x.T + (self.beta - c * mean)).T
