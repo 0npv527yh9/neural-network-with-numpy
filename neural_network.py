@@ -1,5 +1,6 @@
 import numpy as np
 
+# 畳み込み層
 class Convolution:
     def __init__(self):
         self.adam_W = Adam()
@@ -63,6 +64,7 @@ class Convolution:
         dEn_dX = convert_X_into_batch(dEn_dX, self.R, self.p, self.s, (B, dh, dw))
         return dEn_dX
 
+# プーリング層
 class Pooling:
     def init(self, d):
         self.d = d
@@ -124,6 +126,7 @@ class Pooling:
         B, ch, dy, dx = self.shape
         return Y.reshape(ch, dy, dx, B).transpose(3, 0, 1, 2)
 
+# 全結合層
 class Affine:
     def __init__(self):
         self.adam_W = Adam()
@@ -215,36 +218,28 @@ class Batch_normalization:
 
     def forward(self, x, is_train):
         self.x = x
-        # is_train = True
         if is_train:
             self.mean = np.mean(x, axis = 1)
             self.var = np.var(x, axis = 1)
             self.x_hat = ((x.T - self.mean) / np.sqrt(self.var + Batch_normalization.eps)).T
             self.y = ((self.gamma * self.x_hat.T) + self.beta).T
 
-            self.mean_sum += self.mean
-            self.var_sum += self.var
+            # self.mean_sum += self.mean
+            # self.var_sum += self.var
 
-            # momentum = 0.01
-            # momentum = 128 / 60000
-            # self.mean_sum *= (1 - momentum)
-            # self.mean_sum += momentum * self.mean
-            # self.var_sum *= (1 - momentum)
-            # self.var_sum += momentum * self.var
+            momentum = 0.01
+            self.mean_sum *= (1 - momentum)
+            self.mean_sum += momentum * self.mean
+            self.var_sum *= (1 - momentum)
+            self.var_sum += momentum * self.var
 
-            # print(self.mean[100], self.mean_sum[100] / (self.count + 1))
-            # print(self.mean, self.var, self.count)
         else:
-            # print(self.mean_sum / self.count, self.var_sum / self.count, self.count)
-            # c = self.gamma / np.sqrt(self.var_sum / self.count + Batch_normalization.eps)
-            # self.y = (c * x.T + (self.beta - c * self.mean_sum / self.count)).T
-
-            # var = self.var_sum
-            # mean = self.mean_sum
-                var = self.var_sum / self.count
-                mean = self.mean_sum / self.count
-                c = self.gamma / np.sqrt(var + Batch_normalization.eps)
-                self.y = (c * x.T + (self.beta - c * mean)).T
+            var = self.var_sum
+            mean = self.mean_sum
+            # var = self.var_sum * self.count * / (self.count - 1) if self.count > 1 else 0
+            # mean = self.mean_sum / self.count if self.count > 0 else 0
+            c = self.gamma / np.sqrt(var + Batch_normalization.eps)
+            self.y = (c * x.T + (self.beta - c * mean)).T
         return self.y
 
     def backward(self, dEn_dy):
@@ -290,7 +285,11 @@ class Softmax:
         return self.y
 
     def backward(self, y, B):
-        return (self.y - y) / B
+        cols = np.arange(B)
+        self.y[y, cols] -= 1
+        self.y /= B
+        return self.y
+        # return (self.y - y) / B
 
 class Dropout:
     def forward(self, x, is_train, rate = 0.5):
@@ -303,7 +302,8 @@ class Dropout:
         return self.y
 
     def backward(self, dEn_dy):
-        return dEn_dy * self.is_valid
+        # return dEn_dy * self.is_valid
+        return np.where(self.is_valid, dEn_dy, 0)
 
 class Neural_network:
     # 初期化
@@ -319,13 +319,7 @@ class Neural_network:
     def save(self, file_name):
         para = {'epoch_count': self.epoch_count}
 
-        # self.layers['conv'].save(para, 'conv')
-        # self.layers['bn1'].save(para, 'bn1')
-        # self.layers['pooling'].save(para, 'pooling')
-        # self.layers['affine1'].save(para, 'affine1')
-        # self.layers['bn2'].save(para, 'bn2')
-        # self.layers['affine2'].save(para, 'affine2')
-        # self.layers = create_layers()
+        # 各層で save を呼び出す
         for name, layer in self.layers.items():
             if hasattr(layer, 'save'):
                 layer.save(para, name)
@@ -336,30 +330,31 @@ class Neural_network:
     def load(self, file_name):
         para = np.load(file_name)
 
+        # 各層で load を呼び出す
         self.layers = create_layers()
         for name, layer in self.layers.items():
             if hasattr(layer, 'load'):
                 layer.load(para, name)
-        # self.layers['Convolution'].load(para, 'Convolution')
-        # self.layers['Pooling'].load(para, 'Pooling')
-        # self.layers['affine1'].load(para, 'affine1')
-        # self.layers['batch_normalization'].load(para, 'batch_normalization')
-        # self.layers['affine2'].load(para, 'affine2')
 
         self.epoch_count = para['epoch_count']
 
     # 順伝播
     def forward(self, x, is_train = False):
+        # 畳み込み
         x = self.layers['conv'].forward(x)
-        # todo
+
+        # Batch Normalization
         B, ch, dh, dw = x.shape
+        # (dw, dh * ch, B)
         x = x.transpose(1, 2, 3, 0).reshape(-1, B)
         x = self.layers['bn1'].forward(x, is_train)
+        # (B, ch, dh, dw)
         x = x.reshape(ch, dh, dw, B).transpose(3, 0, 1, 2)
 
+        # ReLu と Pooling
         x = self.layers['relu1'].forward(x)
-
         x = self.layers['pooling'].forward(x)
+        # (d, B)
         x = self.layers['pooling'].convert_images_into_vectors(x)
 
         x = self.layers['affine1'].forward(x)
@@ -380,10 +375,7 @@ class Neural_network:
 
     # 誤差逆伝播
     def backward(self, X, Y, B, epoch):
-        # 中間層の次元数を出力する
-        # M = len(self.layers['affine'].b)
-        # print('中間層の次元数 =', M)
-
+        # 訓練データの総数
         N = len(X)
         #  1エポックあたりのミニバッチ学習の回数
         rep_per_epoch = N // B
@@ -393,28 +385,13 @@ class Neural_network:
         # 損失関数の和
         En_sum = 0
 
-        import mnist
-        load_file = mnist.download_and_parse_mnist_file
-        train_images_file = 'train-images-idx3-ubyte.gz'
-        train_labels_file = 'train-labels-idx1-ubyte.gz'
-        test_images_file = 't10k-images-idx3-ubyte.gz'
-        test_labels_file = 't10k-labels-idx1-ubyte.gz'
-        # from cifar_tool import load_train_file
-        # from cifar_tool import load_test_file
-        # Xtr, Ytr = load_train_file()
-        # Xte, Yte = load_test_file()
-        Xte = load_file(test_images_file)
-        Yte = load_file(test_labels_file)
-        Xtr = load_file(train_images_file)
-        Ytr = load_file(train_labels_file)
-        # from cifar_perf import output_performance
-        from check_performance import output_performance
         from time import time
         t0 = time()
 
         for i in range(rep):
             # ミニバッチ学習
             mini_batch, En = self.mini_batch_training(X, Y, B)
+            # ミニバッチの正解データ
             Ym = mini_batch[1]
 
             # 逆伝播
@@ -425,16 +402,17 @@ class Neural_network:
             dEn_dX = self.layers['bn2'].backward(dEn_dX)
             dEn_dX = self.layers['affine1'].backward(dEn_dX)
 
+            # Pooling と ReLU
             dEn_dX = self.layers['pooling'].convert_vectors_into_images(dEn_dX)
-
             dEn_dX = self.layers['pooling'].backward(dEn_dX)
-
             dEn_dX = self.layers['relu1'].backward(dEn_dX)
 
-            # todo
+            # Batch Normalization
             B, ch, dh, dw = dEn_dX.shape
+            # (dw, dh * ch, B)
             dEn_dX = dEn_dX.transpose(1, 2, 3, 0).reshape(-1, B)
             dEn_dX = self.layers['bn1'].backward(dEn_dX)
+            # (B, ch, dh, dw)
             dEn_dX = dEn_dX.reshape(ch, dh, dw, B).transpose(3, 0, 1, 2)
 
             dEn_dX = self.layers['conv'].backward(dEn_dX)
@@ -446,19 +424,25 @@ class Neural_network:
                 self.epoch_count += 1
                 En_avg = En_sum / rep_per_epoch
 
-                t1 = time()
-                print(self.epoch_count, En_avg, (t1 - t0) / 60)
+
 
                 En_sum = 0
 
-                if (i + 1) // rep_per_epoch % 10 == 0:
-                    output_performance('訓練データ', Xtr, Ytr, self)
-                    output_performance('テストデータ', Xte, Yte, self)
-                    self.save('parameter.npz')
+                accuracy = self.check_accuracy(X, Y)
+                t1 = time()
+                print(self.epoch_count, En_avg, accuracy, (t1 - t0) / 60)
                 t0 = time()
             else:
                 En_sum += En
 
+    # 性能評価
+    def check_accuracy(self, X, Y):
+        N = len(X)
+        B = 1000
+        correct = sum(np.sum(self.forward(X[i:i+B]).argmax(axis = 0) == Y[i:i+B]) for i in range(0, N, B))
+        # wrong = N - correct
+
+        return correct / N
 
 
 # 乱数配列
@@ -483,13 +467,18 @@ def create_mini_batch(X, Y, B):
     N = len(X)
     indexes = np.random.choice(N, B, False)
     X = X[indexes]
-    Y = Y[indexes].T
+    Y = Y[indexes] # 1次元
+    # Y = Y[indexes].T
     return X, Y
 
 # クロスエントロピー誤差
 def cross_entropy(y, y2):
-    E = -y * np.log(y2)
-    return np.sum(E, axis = 0)
+    B = y2.shape[1]
+    cols = np.arange(B)
+    E = -np.log(y2[y, cols])
+    return E
+    # E = -y * np.log(y2)
+    # return np.sum(E, axis = 0)
 
 # (B, ch, dy, dx) に対してパディング
 def padding(array, p):
