@@ -13,8 +13,8 @@ train_labels_file = 'train-labels-idx1-ubyte.gz'
 test_images_file = 't10k-images-idx3-ubyte.gz'
 test_labels_file = 't10k-labels-idx1-ubyte.gz'
 
-# プーリング幅
-d2 = 2
+# 入力画像の次元数 dy * dx
+dx = dy = 28
 
 # 畳み込み層
 ch = 1
@@ -23,8 +23,10 @@ R = 3
 p = R // 2
 s = 1
 
-dx = dy = 28
+# プーリング幅
+d2 = 2
 
+#　畳み込み後の次元数 dw * dh
 dh = (2 * p + dy - R) // s + 1
 dw = (2 * p + dx - R) // s + 1
 
@@ -32,8 +34,6 @@ dw = (2 * p + dx - R) // s + 1
 d = K * dh * dw // (d2 * d2)
 M = 128
 C = 10
-
-# print(dh, dw, d)
 
 # パラメータ保存用ファイル
 parameters_file = 'parameter.npz'
