@@ -1,6 +1,9 @@
 import numpy as np
 import pickle
 
+# シードの設定
+np.random.seed(100)
+
 # プーリング幅
 d2 = 2
 

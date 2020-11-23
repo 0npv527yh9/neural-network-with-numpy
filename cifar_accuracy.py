@@ -1,4 +1,4 @@
-from mnist_tool import *
+from cifar_tool import *
 from neural_network import Neural_network
 
 def main():
@@ -6,15 +6,13 @@ def main():
     nn.load(parameters_file)
 
     # 教師用データ
-    X = load_file(train_images_file)
-    Y = load_file(train_labels_file)
+    X, Y = load_train_file()
     X = pre_process(X)
     accuracy = nn.check_accuracy(X, Y)
     print('　訓練データ', accuracy)
 
-    # テスト用データ
-    X = load_file(test_images_file)
-    Y = load_file(test_labels_file)
+    # テスト用データの読み込み
+    X, Y = load_test_file()
     X = pre_process(X)
     accuracy = nn.check_accuracy(X, Y)
     print('テストデータ', accuracy)
