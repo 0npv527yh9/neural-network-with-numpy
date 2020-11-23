@@ -1,0 +1,11 @@
+*.pyc
+*.npy
+*.npz
+*.txt
+p.bat
+template.py
+sample.py
+/cifar-10-batches-py
+cifar.py
+cifar-10-python.tar.gz
+sample_cifar.py
