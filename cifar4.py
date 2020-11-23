@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 
 def main():
     # 教師用データの読み込み
-    X, Y = load_train_file()
+    X, Y = load_test_file()
+
+    # 前処理
+    X = pre_process(X)
 
     # 入力
     i = int(input('0 ~ 9999から1つ入力してください >> '))
-
-    # 前処理
-    x = X[i][np.newaxis, :, :, :] / 255
+    x = X[i][np.newaxis, :, :, :]
 
     # ニューラルネットワーク生成
     nn = Neural_network()
@@ -23,7 +24,7 @@ def main():
     y = post_process(y)
 
     # 結果の表示
-    print('出力:',  label[y])
+    print('推論:',  y)
     print('正解:',  label[Y[i]])
     plt.imshow(X[i].transpose(((1,2,0))))
     plt.show()

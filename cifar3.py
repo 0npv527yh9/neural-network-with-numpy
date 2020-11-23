@@ -6,7 +6,7 @@ def main():
     X, Y = load_train_file()
 
     # 前処理
-    X, Y = pre_process(X, Y)
+    X = pre_process(X)
 
     # ニューラルネットワーク生成
     nn = Neural_network()
