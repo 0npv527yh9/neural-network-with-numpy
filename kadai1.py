@@ -4,12 +4,11 @@ from neural_network import Neural_network
 def main():
     # テストデータの読み込み
     X = load_file(test_images_file)
+    X = pre_process(X)
 
     # 入力
     i = int(input('0 ~ 9999から1つ入力してください >> '))
-
-    # 前処理
-    x = X[i].reshape((1, 1, 28, 28))
+    x = X[i][None,:,:,:]
 
     # ニューラルネットワーク生成
     nn = Neural_network()

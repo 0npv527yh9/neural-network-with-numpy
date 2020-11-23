@@ -41,16 +41,15 @@ parameters_file = 'parameter.npz'
 # parameters_file = 'K4M256E30.npz'
 # parameters_file = 'rl_do_bn_ad_cp_M128_E10.npz'
 
-def pre_process(X, Y):
-    # (N, dy, dx) -> (N, 1, dy, dx)
+def pre_process(X):
+    # (N, 1, dy, dx)
     X = X[:, np.newaxis, :, :] / 255
-    Y = np.array(list(map(one_hot_vector, Y)))
-    return X, Y
+    return X
 
-def one_hot_vector(i):
-    y = np.zeros(C)
-    y[i] = 1
-    return y
+# def one_hot_vector(i):
+#     y = np.zeros(C)
+#     y[i] = 1
+#     return y
 
 def post_process(y):
     i = np.argmax(y)

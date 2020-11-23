@@ -8,11 +8,12 @@ def main():
     X = load_file(test_images_file)
     Y = load_file(test_labels_file)
 
+    # 前処理
+    X = pre_process(X)
+
     # 入力
     i = int(input('0 ~ 9999から1つ入力してください >> '))
-
-    # 前処理
-    x = X[i].reshape((1, 1, 28, 28)) / 255
+    x = X[i][None,:,:,:]
 
     # ニューラルネットワーク生成
     nn = Neural_network()
@@ -26,7 +27,8 @@ def main():
     y = post_process(y)
 
     # 結果の表示
-    print('出力:',  y)
+    print('推論:',  y)
+    print('正解:',  Y[i])
     plt.imshow(X[i], cmap = cm.gray)
     plt.show()
 
