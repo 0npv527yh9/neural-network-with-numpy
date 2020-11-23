@@ -3,10 +3,14 @@ from neural_network import Neural_network
 
 def main():
     # 教師用データの読み込み
-    X, Y = load_train_file()
+    X_train, Y_train = load_train_file()
+
+    # テストデータの読み込み
+    X_test, Y_test = load_test_file()
 
     # 前処理
-    X = pre_process(X)
+    X_train = pre_process(X_train)
+    X_test = pre_process(X_test)
 
     # ニューラルネットワーク生成
     nn = Neural_network()
@@ -22,7 +26,7 @@ def main():
     epoch = int(input('エポック数 >> '))
 
     # 誤差伝播
-    nn.backward(X, Y, B, epoch)
+    nn.backward(X_train, Y_train, X_test, Y_test, B, epoch)
 
     # パラメータを保存
     nn.save(parameters_file)

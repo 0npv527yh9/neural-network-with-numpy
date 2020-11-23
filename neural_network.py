@@ -374,9 +374,9 @@ class Neural_network:
         return mini_batch, En
 
     # 誤差逆伝播
-    def backward(self, X, Y, B, epoch):
+    def backward(self, X_train, Y_train, X_test, Y_test, B, epoch):
         # 訓練データの総数
-        N = len(X)
+        N = len(X_train)
         #  1エポックあたりのミニバッチ学習の回数
         rep_per_epoch = N // B
         # ミニバッチ学習の総回数
@@ -390,12 +390,12 @@ class Neural_network:
 
         for i in range(rep):
             # ミニバッチ学習
-            mini_batch, En = self.mini_batch_training(X, Y, B)
+            mini_batch, En = self.mini_batch_training(X_train, Y_train, B)
             # ミニバッチの正解データ
-            Ym = mini_batch[1]
+            Y = mini_batch[1]
 
             # 逆伝播
-            dEn_dX = self.layers['softmax'].backward(Ym, B)
+            dEn_dX = self.layers['softmax'].backward(Y, B)
             dEn_dX = self.layers['affine2'].backward(dEn_dX)
             dEn_dX = self.layers['dropout'].backward(dEn_dX)
             dEn_dX = self.layers['relu2'].backward(dEn_dX)
@@ -428,9 +428,10 @@ class Neural_network:
 
                 En_sum = 0
 
-                accuracy = self.check_accuracy(X, Y)
+                accuracy_train = self.check_accuracy(X_train, Y_train)
+                accuracy_test = self.check_accuracy(X_test, Y_test)
                 t1 = time()
-                print(self.epoch_count, En_avg, accuracy, (t1 - t0) / 60)
+                print(self.epoch_count, En_avg, accuracy_train, accuracy_test, (t1 - t0) / 60)
                 t0 = time()
             else:
                 En_sum += En
