@@ -61,24 +61,21 @@ class Softmax:
 class ReLU:
     def forward(self, t):
         self.x = t
-        self.y = np.maximum(0, t)
-        return self.y
+        return np.maximum(0, t)
 
     def backward(self, dEn_dy):
         return np.where(self.x > 0, dEn_dy, 0)
 
 class Dropout:
     def forward(self, x, is_train, rate = 0.5):
-        self.x = x
         if is_train:
             self.is_valid = np.random.rand(*x.shape) > rate
-            self.y = x * self.is_valid
+            y = np.where(self.is_valid, x, 0)
         else:
-            self.y = x * (1 - rate)
-        return self.y
+            y = x * (1 - rate)
+        return y
 
     def backward(self, dEn_dy):
-        # return dEn_dy * self.is_valid
         return np.where(self.is_valid, dEn_dy, 0)
 
 class Batch_normalization:
