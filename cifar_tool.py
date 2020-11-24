@@ -9,7 +9,7 @@ d2 = 2
 
 # 畳み込み層
 ch = 3
-K = 3
+K = 8
 R = 3
 p = R // 2
 s = 1
@@ -22,12 +22,12 @@ dw = (2 * p + dx - R) // s + 1
 
 # 各層の次元数
 d = K * dh * dw // (d2 * d2)
-M = 128
+M = 256
 C = 10
 
 # パラメータ保存用ファイル
-# parameters_file = 'parameter.npz'
-parameters_file = 'K3M128E100cifar.npz'
+parameters_file = 'parameter.npz'
+# parameters_file = 'K3M128E100cifar.npz'
 
 label = ['airplane', 'automobile', 'bird', 'cat' , 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 

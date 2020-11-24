@@ -1,5 +1,185 @@
 import numpy as np
 
+# 全結合層
+class Affine:
+    def __init__(self):
+        self.adam_W = Adam()
+        self.adam_b = Adam()
+
+    def init(self, row, col):
+        self.W = random_ndarray(col, (row, col))
+        self.b = random_ndarray(col, row)
+
+    def save(self, para, name):
+        para[name + '_W'] = self.W
+        para[name + '_b'] = self.b
+        self.adam_W.save(para, name + '_adam_W')
+        self.adam_b.save(para, name + '_adam_b')
+
+    def load(self, para, name):
+        self.W = para[name + '_W']
+        self.b = para[name + '_b']
+        self.adam_W.load(para, name + '_adam_W')
+        self.adam_b.load(para, name + '_adam_b')
+
+    def forward(self, x):
+        self.x = x
+        self.y = (np.dot(self.W, x).T + self.b).T
+        return self.y
+
+    def backward(self, dEn_dY):
+        dEn_dX = np.dot(self.W.T, dEn_dY)
+        dEn_dW = np.dot(dEn_dY, self.x.T)
+        dEn_db = dEn_dY.sum(axis = 1)
+        self.W -= self.adam_W.grad(dEn_dW)
+        self.b -= self.adam_b.grad(dEn_db)
+        return dEn_dX
+
+class Sigmoid:
+    def forward(self, t):
+        self.x = t
+        self.y = 1 / (1 + np.exp(-t))
+        return self.y
+
+    def backward(self, dEn_dy):
+        return dEn_dy * (1 - self.y) * self.y
+
+class Softmax:
+    def forward(self, a):
+        self.x = a
+        ex = np.exp(a - np.max(a, axis = 0))
+        self.y = ex / np.sum(ex, axis = 0)
+        return self.y
+
+    def backward(self, y, B):
+        cols = np.arange(B)
+        self.y[y, cols] -= 1
+        self.y /= B
+        return self.y
+        # return (self.y - y) / B
+
+class ReLU:
+    def forward(self, t):
+        self.x = t
+        self.y = np.maximum(0, t)
+        return self.y
+
+    def backward(self, dEn_dy):
+        return dEn_dy * (self.x > 0)
+
+class Dropout:
+    def forward(self, x, is_train, rate = 0.5):
+        self.x = x
+        if is_train:
+            self.is_valid = np.random.rand(*x.shape) > rate
+            self.y = x * self.is_valid
+        else:
+            self.y = x * (1 - rate)
+        return self.y
+
+    def backward(self, dEn_dy):
+        # return dEn_dy * self.is_valid
+        return np.where(self.is_valid, dEn_dy, 0)
+
+class Batch_normalization:
+    eps = 1e-10
+    def __init__(self):
+        self.adam_gamma = Adam()
+        self.adam_beta = Adam()
+        self.gamma = 1
+        self.beta = 0
+        self.var_sum = 0.
+        self.mean_sum = 0.
+        self.count = 0
+
+    def save(self, para, name):
+        para[name + '_gamma'] = self.gamma
+        para[name + '_beta'] = self.beta
+        para[name + '_var_sum'] = self.var_sum
+        para[name + '_mean_sum'] = self.mean_sum
+        para[name + '_count'] = self.count
+        self.adam_gamma.save(para, name + '_adam_gamma')
+        self.adam_beta.save(para, name + '_adam_beta')
+
+    def load(self, para, name):
+        self.gamma  = para[name + '_gamma']
+        self.beta = para[name + '_beta']
+        self.var_sum = para[name + '_var_sum']
+        self.mean_sum = para[name + '_mean_sum']
+        self.count = para[name + '_count']
+        self.adam_gamma.load(para, name + '_adam_gamma')
+        self.adam_beta.load(para, name + '_adam_beta')
+
+    def forward(self, x, is_train):
+        self.x = x
+        if is_train:
+            self.mean = np.mean(x, axis = 1)
+            self.var = np.var(x, axis = 1)
+            self.x_hat = ((x.T - self.mean) / np.sqrt(self.var + Batch_normalization.eps)).T
+            self.y = ((self.gamma * self.x_hat.T) + self.beta).T
+
+            # B = x.shape[1]
+            # self.var_sum += self.var * B / (B - 1)
+            # self.mean_sum += self.mean
+
+            momentum = 0.01
+            self.mean_sum *= (1 - momentum)
+            self.mean_sum += momentum * self.mean
+            self.var_sum *= (1 - momentum)
+            self.var_sum += momentum * self.var
+
+        else:
+            var = self.var_sum
+            mean = self.mean_sum
+            # var = self.var_sum / self.count if self.count > 0 else 0
+            # mean = self.mean_sum / self.count if self.count > 0 else 0
+            c = self.gamma / np.sqrt(var + Batch_normalization.eps)
+            self.y = (c * x.T + (self.beta - c * mean)).T
+        return self.y
+
+    def backward(self, dEn_dy):
+        self.count += 1
+
+        B = dEn_dy.shape[1]
+        dEn_dx_hat = (dEn_dy.T * self.gamma).T
+        dEn_dvar = np.sum(dEn_dx_hat * (self.x.T - self.mean).T, axis = 1) * (-1 / 2) * (self.var + Batch_normalization.eps) ** (-3 / 2)
+        c = 1 / np.sqrt(self.var + Batch_normalization.eps)
+        dEn_dmean = -c * np.sum(dEn_dx_hat, axis = 1) + dEn_dvar * (-2) * (np.mean(self.x, axis = 1) - self.mean)
+        dEn_dx = (dEn_dx_hat.T * c + dEn_dvar * 2 * (self.x.T - self.mean) / B + dEn_dmean / B).T
+
+        dEn_dgamma = np.sum(dEn_dy * self.x_hat, axis = 1)
+        dEn_dbeta = np.sum(dEn_dy, axis = 1)
+        self.gamma -= self.adam_gamma.grad(dEn_dgamma)
+        self.beta -= self.adam_beta.grad(dEn_dbeta)
+
+        return dEn_dx
+
+class Adam:
+    def __init__(self):
+        self.t = 0
+        self.m = 0
+        self.v = 0
+
+    def save(self, para, name):
+        para[name + '_t'] = self.t
+        para[name + '_m'] = self.m
+        para[name + '_v'] = self.v
+
+    def load(self, para, name):
+        self.t = para[name + '_t']
+        self.m = para[name + '_m']
+        self.v = para[name + '_v']
+
+    def grad(self, dEn_dW, alpha = 0.001, beta1 = 0.9, beta2 = 0.999, eps = 1e-8):
+        self.t += 1
+        self.m *= beta1
+        self.m += (1 - beta1) * dEn_dW
+        self.v *= beta2
+        self.v += (1 - beta2) * dEn_dW * dEn_dW
+        m_hat = self.m / (1 - np.power(beta1, self.t))
+        v_hat = self.v / (1 - np.power(beta2, self.t))
+        return alpha * m_hat / (np.sqrt(v_hat) + eps)
+
 # 畳み込み層
 class Convolution:
     def __init__(self):
@@ -126,185 +306,6 @@ class Pooling:
         B, ch, dy, dx = self.shape
         return Y.reshape(ch, dy, dx, B).transpose(3, 0, 1, 2)
 
-# 全結合層
-class Affine:
-    def __init__(self):
-        self.adam_W = Adam()
-        self.adam_b = Adam()
-
-    def init(self, row, col):
-        self.W = random_ndarray(col, (row, col))
-        self.b = random_ndarray(col, row)
-
-    def save(self, para, name):
-        para[name + '_W'] = self.W
-        para[name + '_b'] = self.b
-        self.adam_W.save(para, name + '_adam_W')
-        self.adam_b.save(para, name + '_adam_b')
-
-    def load(self, para, name):
-        self.W = para[name + '_W']
-        self.b = para[name + '_b']
-        self.adam_W.load(para, name + '_adam_W')
-        self.adam_b.load(para, name + '_adam_b')
-
-    def forward(self, x):
-        self.x = x
-        self.y = (np.dot(self.W, x).T + self.b).T
-        return self.y
-
-    def backward(self, dEn_dY):
-        dEn_dX = np.dot(self.W.T, dEn_dY)
-        dEn_dW = np.dot(dEn_dY, self.x.T)
-        dEn_db = dEn_dY.sum(axis = 1)
-        self.W -= self.adam_W.grad(dEn_dW)
-        self.b -= self.adam_b.grad(dEn_db)
-        return dEn_dX
-
-class Adam:
-    def __init__(self):
-        self.t = 0
-        self.m = 0
-        self.v = 0
-
-    def save(self, para, name):
-        para[name + '_t'] = self.t
-        para[name + '_m'] = self.m
-        para[name + '_v'] = self.v
-
-    def load(self, para, name):
-        self.t = para[name + '_t']
-        self.m = para[name + '_m']
-        self.v = para[name + '_v']
-
-    def grad(self, dEn_dW, alpha = 0.001, beta1 = 0.9, beta2 = 0.999, eps = 1e-8):
-        self.t += 1
-        self.m *= beta1
-        self.m += (1 - beta1) * dEn_dW
-        self.v *= beta2
-        self.v += (1 - beta2) * dEn_dW * dEn_dW
-        m_hat = self.m / (1 - np.power(beta1, self.t))
-        v_hat = self.v / (1 - np.power(beta2, self.t))
-        return alpha * m_hat / (np.sqrt(v_hat) + eps)
-
-class Batch_normalization:
-    eps = 1e-10
-    def __init__(self):
-        self.adam_gamma = Adam()
-        self.adam_beta = Adam()
-        self.gamma = 1
-        self.beta = 0
-        self.var_sum = 0.
-        self.mean_sum = 0.
-        self.count = 0
-
-    def save(self, para, name):
-        para[name + '_gamma'] = self.gamma
-        para[name + '_beta'] = self.beta
-        para[name + '_var_sum'] = self.var_sum
-        para[name + '_mean_sum'] = self.mean_sum
-        para[name + '_count'] = self.count
-        self.adam_gamma.save(para, name + '_adam_gamma')
-        self.adam_beta.save(para, name + '_adam_beta')
-
-    def load(self, para, name):
-        self.gamma  = para[name + '_gamma']
-        self.beta = para[name + '_beta']
-        self.var_sum = para[name + '_var_sum']
-        self.mean_sum = para[name + '_mean_sum']
-        self.count = para[name + '_count']
-        self.adam_gamma.load(para, name + '_adam_gamma')
-        self.adam_beta.load(para, name + '_adam_beta')
-
-    def forward(self, x, is_train):
-        self.x = x
-        if is_train:
-            self.mean = np.mean(x, axis = 1)
-            self.var = np.var(x, axis = 1)
-            self.x_hat = ((x.T - self.mean) / np.sqrt(self.var + Batch_normalization.eps)).T
-            self.y = ((self.gamma * self.x_hat.T) + self.beta).T
-
-            # self.mean_sum += self.mean
-            # self.var_sum += self.var
-
-            momentum = 0.01
-            self.mean_sum *= (1 - momentum)
-            self.mean_sum += momentum * self.mean
-            self.var_sum *= (1 - momentum)
-            self.var_sum += momentum * self.var
-
-        else:
-            var = self.var_sum
-            mean = self.mean_sum
-            # var = self.var_sum * self.count / (self.count - 1) if self.count > 1 else 0
-            # mean = self.mean_sum / self.count if self.count > 0 else 0
-            c = self.gamma / np.sqrt(var + Batch_normalization.eps)
-            self.y = (c * x.T + (self.beta - c * mean)).T
-        return self.y
-
-    def backward(self, dEn_dy):
-        self.count += 1
-
-        B = dEn_dy.shape[1]
-        dEn_dx_hat = (dEn_dy.T * self.gamma).T
-        dEn_dvar = np.sum(dEn_dx_hat * (self.x.T - self.mean).T, axis = 1) * (-1 / 2) * (self.var + Batch_normalization.eps) ** (-3 / 2)
-        c = 1 / np.sqrt(self.var + Batch_normalization.eps)
-        dEn_dmean = -c * np.sum(dEn_dx_hat, axis = 1) + dEn_dvar * (-2) * (np.mean(self.x, axis = 1) - self.mean)
-        dEn_dx = (dEn_dx_hat.T * c + dEn_dvar * 2 * (self.x.T - self.mean) / B + dEn_dmean / B).T
-
-        dEn_dgamma = np.sum(dEn_dy * self.x_hat, axis = 1)
-        dEn_dbeta = np.sum(dEn_dy, axis = 1)
-        self.gamma -= self.adam_gamma.grad(dEn_dgamma)
-        self.beta -= self.adam_beta.grad(dEn_dbeta)
-
-        return dEn_dx
-
-class Sigmoid:
-    def forward(self, t):
-        self.x = t
-        self.y = 1 / (1 + np.exp(-t))
-        return self.y
-
-    def backward(self, dEn_dy):
-        return dEn_dy * (1 - self.y) * self.y
-
-class ReLU:
-    def forward(self, t):
-        self.x = t
-        self.y = np.maximum(0, t)
-        return self.y
-
-    def backward(self, dEn_dy):
-        return dEn_dy * (self.x > 0)
-
-class Softmax:
-    def forward(self, a):
-        self.x = a
-        ex = np.exp(a - np.max(a, axis = 0))
-        self.y = ex / np.sum(ex, axis = 0)
-        return self.y
-
-    def backward(self, y, B):
-        cols = np.arange(B)
-        self.y[y, cols] -= 1
-        self.y /= B
-        return self.y
-        # return (self.y - y) / B
-
-class Dropout:
-    def forward(self, x, is_train, rate = 0.5):
-        self.x = x
-        if is_train:
-            self.is_valid = np.random.rand(*x.shape) > rate
-            self.y = x * self.is_valid
-        else:
-            self.y = x * (1 - rate)
-        return self.y
-
-    def backward(self, dEn_dy):
-        # return dEn_dy * self.is_valid
-        return np.where(self.is_valid, dEn_dy, 0)
-
 class Neural_network:
     # 初期化
     def init(self, d, M, C, ch, K, R, p, s, d2):
@@ -345,7 +346,7 @@ class Neural_network:
 
         # Batch Normalization
         B, ch, dh, dw = x.shape
-        # (dw, dh * ch, B)
+        # (dw * dh * ch, B)
         x = x.transpose(1, 2, 3, 0).reshape(-1, B)
         x = self.layers['bn1'].forward(x, is_train)
         # (B, ch, dh, dw)
@@ -433,6 +434,10 @@ class Neural_network:
                 t1 = time()
                 print(self.epoch_count, En_avg, accuracy_train, accuracy_test, (t1 - t0) / 60)
                 t0 = time()
+
+                ten = (i + 1) // rep_per_epoch
+                if ten % 10 == 0:
+                    self.save('mnist_' + str(ten) + '.npz')
             else:
                 En_sum += En
 
