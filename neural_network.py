@@ -81,10 +81,10 @@ class Dropout:
 class Batch_normalization:
     eps = 1e-10
     def __init__(self):
-        self.adam_gamma = Adam()
-        self.adam_beta = Adam()
         self.gamma = 1
         self.beta = 0
+        self.adam_gamma = Adam()
+        self.adam_beta = Adam()
         self.var_sum = 0.
         self.mean_sum = 0.
         self.count = 0
@@ -124,12 +124,13 @@ class Batch_normalization:
             self.mean_sum += momentum * self.mean
             self.var_sum *= (1 - momentum)
             self.var_sum += momentum * self.var
-
         else:
-            var = self.var_sum
-            mean = self.mean_sum
             # var = self.var_sum / self.count if self.count > 0 else 0
             # mean = self.mean_sum / self.count if self.count > 0 else 0
+
+            var = self.var_sum
+            mean = self.mean_sum
+
             c = self.gamma / np.sqrt(var + Batch_normalization.eps)
             self.y = (c * x.T + (self.beta - c * mean)).T
         return self.y
@@ -140,12 +141,14 @@ class Batch_normalization:
         B = dEn_dy.shape[1]
         dEn_dx_hat = (dEn_dy.T * self.gamma).T
         dEn_dvar = np.sum(dEn_dx_hat * (self.x.T - self.mean).T, axis = 1) * (-1 / 2) * (self.var + Batch_normalization.eps) ** (-3 / 2)
+
         c = 1 / np.sqrt(self.var + Batch_normalization.eps)
         dEn_dmean = -c * np.sum(dEn_dx_hat, axis = 1) + dEn_dvar * (-2) * (np.mean(self.x, axis = 1) - self.mean)
         dEn_dx = (dEn_dx_hat.T * c + dEn_dvar * 2 * (self.x.T - self.mean) / B + dEn_dmean / B).T
-
         dEn_dgamma = np.sum(dEn_dy * self.x_hat, axis = 1)
         dEn_dbeta = np.sum(dEn_dy, axis = 1)
+
+        # 更新
         self.gamma -= self.adam_gamma.grad(dEn_dgamma)
         self.beta -= self.adam_beta.grad(dEn_dbeta)
 
