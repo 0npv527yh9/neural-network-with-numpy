@@ -486,17 +486,13 @@ def cross_entropy(y, y2):
     # E = -y * np.log(y2)
     # return np.sum(E, axis = 0)
 
-# (B, ch, dy, dx) に対してパディング
-def padding(array, p):
-    return np.pad(array, ((0, 0), (0, 0), (p, p), (p, p)))
-
 # 画像バッチから行列Xへの変換
 def convert_batch_into_X(batch, R, p, s):
     # バッチサイズ，チャンネル，縦，横
     B, ch, dy, dx = batch.shape
 
     # パディング
-    batch = padding(batch, p)
+    batch = np.pad(batch, ((0, 0), (0, 0), (p, p), (p, p)))
 
     # フィルタがずれる距離
     di = 2 * p + dy - R
@@ -520,9 +516,11 @@ def convert_batch_into_X(batch, R, p, s):
 def convert_X_into_batch(X, R, p, s, shape):
     B, dh, dw = shape
 
+    # フィルタがずれた距離
     di = s * (dh - 1)
     dj = s * (dw - 1)
 
+    # 元画像の縦横
     dy = di - 2 * p + R
     dx = dj - 2 * p + R
 
@@ -531,7 +529,7 @@ def convert_X_into_batch(X, R, p, s, shape):
     X = X.reshape(-1, R, R, B, dh, dw).transpose(3, 0, 1, 2, 4, 5)
 
     ch = X.shape[1]
-    batch = np.zeros((B, ch, dy + 2 * p + s - 1, dx + 2 * p + s - 1))
+    batch = np.zeros((B, ch, dy + 2 * p, dx + 2 * p))
 
     for i in range(R):
         for j in range(R):
