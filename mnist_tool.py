@@ -36,21 +36,15 @@ M = 128
 C = 10
 
 # パラメータ保存用ファイル
-parameters_file = 'parameter.npz'
-# parameters_file = 'K16M512E20.npz'
-# parameters_file = 'K4M256E30.npz'
-# parameters_file = 'rl_do_bn_ad_cp_M128_E10.npz'
+parameters_file = 'mnist.npz'
 
+# 前処理
 def pre_process(X):
     # (N, 1, dy, dx)
     X = X[:, np.newaxis, :, :] / 255
     return X
 
-# def one_hot_vector(i):
-#     y = np.zeros(C)
-#     y[i] = 1
-#     return y
-
+# 後処理
 def post_process(y):
     i = np.argmax(y)
     return i
