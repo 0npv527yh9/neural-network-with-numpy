@@ -65,7 +65,7 @@ class ReLU:
         return self.y
 
     def backward(self, dEn_dy):
-        return dEn_dy * (self.x > 0)
+        return np.where(self.x > 0, dEn_dy, 0)
 
 class Dropout:
     def forward(self, x, is_train, rate = 0.5):
