@@ -386,9 +386,6 @@ class Neural_network:
         # 損失関数の和
         En_sum = 0
 
-        from time import time
-        t0 = time()
-
         for i in range(rep):
             # ミニバッチ学習
             mini_batch, En = self.mini_batch_training(X_train, Y_train, B)
@@ -410,34 +407,28 @@ class Neural_network:
 
             # Batch Normalization
             B, ch, dh, dw = dEn_dX.shape
+
             # (dw, dh * ch, B)
             dEn_dX = dEn_dX.transpose(1, 2, 3, 0).reshape(-1, B)
             dEn_dX = self.layers['bn1'].backward(dEn_dX)
+
             # (B, ch, dh, dw)
             dEn_dX = dEn_dX.reshape(ch, dh, dw, B).transpose(3, 0, 1, 2)
 
+            # 畳み込み
             dEn_dX = self.layers['conv'].backward(dEn_dX)
 
-
-            # 1エポック終わったら、Enの平均を出力
+            # 1エポックごとに、Enの平均と訓練データ，テストデータに対する正答率を出力
             if (i + 1) % rep_per_epoch == 0:
-
                 self.epoch_count += 1
                 En_avg = En_sum / rep_per_epoch
 
-
-
-                En_sum = 0
-
+                # 正答率を求める
                 accuracy_train = self.check_accuracy(X_train, Y_train)
                 accuracy_test = self.check_accuracy(X_test, Y_test)
-                t1 = time()
-                print(self.epoch_count, En_avg, accuracy_train, accuracy_test, (t1 - t0) / 60)
-                t0 = time()
 
-                ten = (i + 1) // rep_per_epoch
-                if ten % 10 == 0:
-                    self.save('mnist_' + str(ten) + '.npz')
+                print(self.epoch_count, En_avg, accuracy_train, accuracy_test)
+                En_sum = 0
             else:
                 En_sum += En
 
