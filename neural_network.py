@@ -259,6 +259,7 @@ class Pooling:
         self.x = x
         B, ch, dy, dx = x.shape
 
+        # 出力画像のサイズ dw * dh
         dh = dy // self.d
         dw = dx // self.d
 
@@ -282,6 +283,7 @@ class Pooling:
     def backward(self, dEn_dY):
         B, ch, dh, dw = dEn_dY.shape
 
+        # 元画像のサイズ dx * dy
         dy = dh * self.d
         dx = dw * self.d
 
