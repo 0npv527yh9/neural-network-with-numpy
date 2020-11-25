@@ -26,10 +26,8 @@ M = 256
 C = 10
 
 # パラメータ保存用ファイル
-parameters_file = 'parameter.npz'
-# parameters_file = 'K3M128E100cifar.npz'
+parameters_file = 'cifar_para.npz'
 
-label = ['airplane', 'automobile', 'bird', 'cat' , 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
 def unpickle(file):
     with open(file, 'rb') as fo:
@@ -63,11 +61,11 @@ def load_test_file():
 
 # 前処理
 def pre_process(X):
-    # (N, dy, dx) -> (N, 1, dy, dx)
-    X = X / 255
+    X /= 255
     return X
 
 # 後処理
+label = ['airplane', 'automobile', 'bird', 'cat' , 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 def post_process(y):
     i = np.argmax(y)
     return label[i]
