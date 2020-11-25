@@ -46,7 +46,6 @@ class Sigmoid:
 
 class Softmax:
     def forward(self, a):
-        self.x = a
         ex = np.exp(a - np.max(a, axis = 0))
         self.y = ex / np.sum(ex, axis = 0)
         return self.y
@@ -56,7 +55,6 @@ class Softmax:
         self.y[y, cols] -= 1
         self.y /= B
         return self.y
-        # return (self.y - y) / B
 
 class ReLU:
     def forward(self, t):
