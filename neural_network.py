@@ -24,8 +24,8 @@ class Affine:
 
     def forward(self, x):
         self.x = x
-        self.y = (np.dot(self.W, x).T + self.b).T
-        return self.y
+        y = (np.dot(self.W, x).T + self.b).T
+        return y
 
     def backward(self, dEn_dY):
         dEn_dX = np.dot(self.W.T, dEn_dY)
