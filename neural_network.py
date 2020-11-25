@@ -437,8 +437,6 @@ class Neural_network:
         N = len(X)
         B = 1000
         correct = sum(np.sum(self.forward(X[i:i+B]).argmax(axis = 0) == Y[i:i+B]) for i in range(0, N, B))
-        # wrong = N - correct
-
         return correct / N
 
 
