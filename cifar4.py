@@ -3,7 +3,7 @@ from neural_network import Neural_network
 import matplotlib.pyplot as plt
 
 def main():
-    # 教師用データの読み込み
+    # 訓練用データの読み込み
     X, Y = load_test_file()
 
     # 前処理

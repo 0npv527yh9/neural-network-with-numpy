@@ -2,7 +2,7 @@ from cifar_tool import *
 from neural_network import Neural_network
 
 def main():
-    # 教師用データの読み込み
+    # 訓練用データの読み込み
     X_train, Y_train = load_train_file()
 
     # テストデータの読み込み

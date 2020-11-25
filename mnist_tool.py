@@ -30,13 +30,13 @@ d2 = 2
 dh = (2 * p + dy - R) // s + 1
 dw = (2 * p + dx - R) // s + 1
 
-# 各層の次元数
+# 全結合層の次元数
 d = K * dh * dw // (d2 * d2)
 M = 128
 C = 10
 
 # パラメータ保存用ファイル
-parameters_file = 'mnist.npz'
+parameters_file = 'mnist_para.npz'
 
 # 前処理
 def pre_process(X):

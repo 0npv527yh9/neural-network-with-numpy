@@ -61,7 +61,7 @@ def load_test_file():
 
 # 前処理
 def pre_process(X):
-    X /= 255
+    X = X / 255
     return X
 
 # 後処理
