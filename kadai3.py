@@ -2,7 +2,7 @@ from mnist_tool import *
 from neural_network import Neural_network
 
 def main():
-    # 教師用データの読み込み
+    # 訓練データの読み込み
     X_train = load_file(train_images_file)
     Y_train = load_file(train_labels_file)
 
@@ -13,7 +13,6 @@ def main():
     # 前処理
     X_train = pre_process(X_train)
     X_test = pre_process(X_test)
-    # X, Y = pre_process(X, Y)
 
     # ニューラルネットワーク生成
     nn = Neural_network()

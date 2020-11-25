@@ -113,19 +113,23 @@ class Batch_normalization:
             self.x_hat = ((x.T - self.mean) / np.sqrt(self.var + Batch_normalization.eps)).T
             self.y = ((self.gamma * self.x_hat.T) + self.beta).T
 
+            # 算術平均
             # B = x.shape[1]
             # self.var_sum += self.var * B / (B - 1)
             # self.mean_sum += self.mean
 
+            # 移動平均
             momentum = 0.01
             self.mean_sum *= (1 - momentum)
             self.mean_sum += momentum * self.mean
             self.var_sum *= (1 - momentum)
             self.var_sum += momentum * self.var
         else:
+            # 算術平均
             # var = self.var_sum / self.count if self.count > 0 else 0
             # mean = self.mean_sum / self.count if self.count > 0 else 0
 
+            # 移動平均
             var = self.var_sum
             mean = self.mean_sum
 

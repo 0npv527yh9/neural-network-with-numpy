@@ -21,7 +21,6 @@ def main():
 
     # 順伝播
     y = nn.forward(x)
-    print(y)
 
     # 後処理
     y = post_process(y)
@@ -29,7 +28,7 @@ def main():
     # 結果の表示
     print('推論:',  y)
     print('正解:',  Y[i])
-    plt.imshow(X[i], cmap = cm.gray)
+    plt.imshow(X[i].reshape(dy, dx), cmap = cm.gray)
     plt.show()
 
 if __name__ == '__main__':
