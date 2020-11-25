@@ -473,8 +473,7 @@ def create_mini_batch(X, Y, B):
     N = len(X)
     indexes = np.random.choice(N, B, False)
     X = X[indexes]
-    Y = Y[indexes] # 1次元
-    # Y = Y[indexes].T
+    Y = Y[indexes]
     return X, Y
 
 # クロスエントロピー誤差
